@@ -1,0 +1,90 @@
+---
+import type { ServiceSummary } from '../utils/booking-service';
+
+interface Props {
+  services: ServiceSummary[];
+  class?: string;
+}
+
+const { services, class: className = '' } = Astro.props;
+
+function formatMeta(service: ServiceSummary): string {
+  const parts: string[] = [];
+  if (service.durationMinutes) parts.push(`${service.durationMinutes} min`);
+  if (service.price) parts.push(service.price);
+  return parts.join(' · ');
+}
+---
+
+<div class={className}>
+  <div class="glass-panel p-6">
+    <div class="flex flex-col space-y-4">
+      <h3 class="text-base font-medium">Session Type</h3>
+
+      {services.length === 0 ? (
+        <p class="text-sm text-muted-foreground text-center">
+          No services are available for booking yet
+        </p>
+      ) : (
+        <div class="flex flex-col sm:flex-row gap-2 sm:gap-4">
+          {services.map((service, index) => (
+            <button
+              class:list={[
+                'session-type-btn flex-1 p-4 border rounded-lg bg-white hover:bg-primary/5 transition-colors cursor-pointer text-left',
+                index === 0 && 'session-type-active',
+              ]}
+              data-service-id={service.id}
+              data-requires-payment={String(service.requiresPayment)}
+            >
+              <h4 class="font-medium mb-1">{service.name}</h4>
+              {service.description && (
+                <p class="text-sm text-muted-foreground">{service.description}</p>
+              )}
+              {formatMeta(service) && (
+                <p class="text-sm text-muted-foreground mt-1">{formatMeta(service)}</p>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+</div>
+
+<script>
+  import { dispatchServiceSelected } from '../utils/event-utils';
+  import type { SelectedService } from '../utils/event-utils';
+
+  const buttons = Array.from(
+    document.querySelectorAll<HTMLButtonElement>('.session-type-btn')
+  );
+
+  function serviceFromButton(button: HTMLButtonElement): SelectedService {
+    return {
+      serviceId: button.dataset.serviceId || '',
+      requiresPayment: button.dataset.requiresPayment === 'true',
+    };
+  }
+
+  let currentServiceId = buttons[0]?.dataset.serviceId ?? null;
+
+  buttons.forEach((button) => {
+    button.addEventListener('click', () => {
+      const { serviceId } = serviceFromButton(button);
+      if (serviceId === currentServiceId) return;
+
+      buttons.forEach((b) => b.classList.remove('session-type-active'));
+      button.classList.add('session-type-active');
+
+      currentServiceId = serviceId;
+      dispatchServiceSelected(serviceFromButton(button));
+    });
+  });
+
+  // Announce the default selection (the first service) once the page is ready
+  document.addEventListener('DOMContentLoaded', () => {
+    if (buttons[0]) {
+      dispatchServiceSelected(serviceFromButton(buttons[0]));
+    }
+  });
+</script>

@@ -1,0 +1,193 @@
+---
+interface Props {
+  class?: string;
+}
+
+const { class: className = "" } = Astro.props;
+
+const fields = [
+  { id: "fullName", label: "Name", type: "text", placeholder: "Your full name", required: true },
+  { id: "email", label: "Email", type: "email", placeholder: "you@example.com", required: true },
+  { id: "phone", label: "Phone", type: "tel", placeholder: "Your phone number", required: true },
+  { id: "address", label: "Address", type: "text", placeholder: "Your full address", required: true },
+];
+
+const inputClass =
+  "w-full px-3 py-2 border border-gray-300 rounded-md shadow-xs focus:outline-hidden focus:ring-2 focus:ring-primary focus:border-transparent";
+const buttonClass =
+  "w-full py-2 px-4 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors";
+---
+
+<div id="booking-form-container" class={className}>
+  <div id="booking-empty" class="glass-panel p-6 text-center">
+    <svg class="h-6 w-6 mx-auto mb-2 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+      <line x1="16" y1="2" x2="16" y2="6"></line>
+      <line x1="8" y1="2" x2="8" y2="6"></line>
+      <line x1="3" y1="10" x2="21" y2="10"></line>
+      <circle cx="12" cy="15" r="3"></circle>
+    </svg>
+    <p class="text-sm text-muted-foreground">
+      Please select both a date and time to proceed with booking
+    </p>
+  </div>
+
+  <div id="booking-panel" class="glass-panel p-6" hidden>
+    <h3 class="text-base font-medium mb-4">Complete Your Booking</h3>
+
+    <div class="mb-6 p-3 bg-secondary/50 rounded-lg text-sm font-medium">
+      <p><span class="text-muted-foreground">Date: </span><span id="booking-summary-date"></span></p>
+      <p><span class="text-muted-foreground">Time: </span><span id="booking-summary-time"></span></p>
+    </div>
+
+    <!-- Free services: collect contact details and create the booking directly -->
+    <form id="booking-submit-form" class="space-y-4" hidden>
+      {fields.map((field) => (
+        <div>
+          <label class="block text-sm font-medium mb-1" for={field.id}>{field.label}</label>
+          <input
+            type={field.type}
+            id={field.id}
+            name={field.id}
+            placeholder={field.placeholder}
+            required={field.required}
+            class={inputClass}
+          />
+        </div>
+      ))}
+      <div>
+        <label class="block text-sm font-medium mb-1" for="notes">Notes (optional)</label>
+        <textarea id="notes" name="notes" placeholder="Any additional information..." class={inputClass}></textarea>
+      </div>
+      <button type="submit" class={buttonClass}>Confirm Booking</button>
+    </form>
+
+    <!-- Paid services: redirect to the Wix-hosted checkout -->
+    <button id="checkout-button" class={buttonClass} hidden>Checkout</button>
+  </div>
+</div>
+
+<script>
+  import { formatDisplayDate } from "../utils/date-utils";
+  import {
+    createBooking,
+    createRedirectSession,
+    type BookingData,
+    type TimeSlot,
+  } from "../utils/booking-service";
+  import {
+    onDateSelected,
+    onTimeSlotSelected,
+    onServiceSelected,
+  } from "../utils/event-utils";
+
+  let selectedDate: Date | null = null;
+  let selectedSlot: TimeSlot | null = null;
+  let requiresPayment = false;
+
+  const container = document.getElementById("booking-form-container")!;
+  const emptyState = document.getElementById("booking-empty")!;
+  const panel = document.getElementById("booking-panel")!;
+  const form = document.getElementById("booking-submit-form") as HTMLFormElement;
+  const submitButton = form.querySelector("button") as HTMLButtonElement;
+  const checkoutButton = document.getElementById("checkout-button") as HTMLButtonElement;
+
+  onDateSelected((date) => {
+    selectedDate = date;
+    updateBookingForm();
+  });
+
+  onTimeSlotSelected((slot) => {
+    selectedSlot = slot;
+    updateBookingForm();
+
+    // Scroll to booking form
+    setTimeout(() => container.scrollIntoView({ behavior: "smooth" }), 100);
+  });
+
+  onServiceSelected((service) => {
+    requiresPayment = service.requiresPayment;
+    // Reset the selected slot when changing services
+    selectedSlot = null;
+    updateBookingForm();
+  });
+
+  function updateBookingForm(): void {
+    const ready = Boolean(selectedDate && selectedSlot);
+    emptyState.hidden = ready;
+    panel.hidden = !ready;
+    if (!ready) return;
+
+    document.getElementById("booking-summary-date")!.textContent =
+      formatDisplayDate(selectedDate!);
+    document.getElementById("booking-summary-time")!.textContent =
+      selectedSlot!.display;
+
+    form.reset();
+    form.hidden = requiresPayment;
+    checkoutButton.hidden = !requiresPayment;
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    if (!selectedDate || !selectedSlot) {
+      alert("Please select a date and time");
+      return;
+    }
+
+    const formData: BookingData = {
+      name: form.fullName.value,
+      email: form.email.value,
+      phone: form.phone.value,
+      address: form.address.value,
+      notes: form.notes.value || "",
+    };
+
+    submitButton.disabled = true;
+    submitButton.textContent = "Confirming...";
+
+    try {
+      await createBooking(formData, selectedSlot);
+
+      // Persist details for the confirmation page
+      const confirmationData: BookingData = {
+        ...formData,
+        date: selectedDate.toISOString().split("T")[0], // yyyy-MM-dd format
+        time: selectedSlot.time,
+        displayDate: formatDisplayDate(selectedDate),
+        displayTime: selectedSlot.display,
+      };
+      sessionStorage.setItem("bookingData", JSON.stringify(confirmationData));
+
+      window.location.href = "/confirmation";
+    } catch (error) {
+      console.error("Error creating booking:", error);
+      alert("There was a problem creating your booking. Please try again.");
+      submitButton.disabled = false;
+      submitButton.textContent = "Confirm Booking";
+    }
+  });
+
+  checkoutButton.addEventListener("click", async () => {
+    if (!selectedSlot) return;
+
+    checkoutButton.disabled = true;
+    checkoutButton.textContent = "Redirecting...";
+
+    try {
+      const redirectUrl = await createRedirectSession(
+        selectedSlot.entity,
+        window.location.href
+      );
+
+      if (!redirectUrl) throw new Error("No redirect URL returned");
+      window.location.href = redirectUrl;
+    } catch (error) {
+      console.error("Error creating redirect session:", error);
+      alert("There was a problem redirecting to checkout. Please try again.");
+      checkoutButton.disabled = false;
+      checkoutButton.textContent = "Checkout";
+    }
+  });
+</script>

@@ -1,0 +1,142 @@
+---
+import ErrorMessage from "./ui/ErrorMessage.astro";
+
+interface Props {
+  class?: string;
+}
+
+const { class: className = "" } = Astro.props;
+---
+
+<div id="time-slots-container" class={className}>
+  <div id="slots-empty" class="glass-panel p-6 text-center">
+    <svg class="h-6 w-6 mx-auto mb-2 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <polyline points="12 6 12 12 16 14"></polyline>
+    </svg>
+    <p class="text-sm text-muted-foreground">Please select a date first</p>
+  </div>
+
+  <div id="slots-panel" class="glass-panel p-6" hidden>
+    <h3 id="slots-heading" class="text-base font-medium mb-4"></h3>
+
+    <div id="slots-loading" hidden>
+      <div class="flex justify-center items-center py-12">
+        <svg class="animate-spin h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span class="ml-2 text-sm text-muted-foreground">Loading available slots...</span>
+      </div>
+    </div>
+
+    <div id="slots-error" hidden>
+      <ErrorMessage message="We couldn't load available times. Please try again." />
+    </div>
+
+    <p id="slots-none" class="text-sm text-muted-foreground text-center py-4" hidden>
+      No available slots for this date
+    </p>
+
+    <div id="slots-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-2" hidden></div>
+  </div>
+</div>
+
+<script>
+  import { formatDisplayDate } from "../utils/date-utils";
+  import { getAvailableSlots, type TimeSlot } from "../utils/booking-service";
+  import {
+    onDateSelected,
+    onServiceSelected,
+    dispatchTimeSlotSelected,
+  } from "../utils/event-utils";
+
+  let selectedDate: Date | null = null;
+  let selectedServiceId: string | null = null;
+  let timeSlots: TimeSlot[] = [];
+  let isLoading = false;
+  let hasError = false;
+
+  const emptyState = document.getElementById("slots-empty")!;
+  const panel = document.getElementById("slots-panel")!;
+  const heading = document.getElementById("slots-heading")!;
+  const loading = document.getElementById("slots-loading")!;
+  const errorState = document.getElementById("slots-error")!;
+  const noSlots = document.getElementById("slots-none")!;
+  const grid = document.getElementById("slots-grid")!;
+
+  onDateSelected(async (date) => {
+    selectedDate = date;
+    await fetchTimeSlots();
+  });
+
+  onServiceSelected((service) => {
+    selectedServiceId = service.serviceId;
+
+    // Always reset the UI when changing services
+    timeSlots = [];
+    hasError = false;
+    updateTimeSlotsUI();
+
+    // Fetch new time slots if we have a date selected
+    if (selectedDate) {
+      fetchTimeSlots();
+    }
+  });
+
+  async function fetchTimeSlots(): Promise<void> {
+    if (!selectedDate || !selectedServiceId) return;
+
+    isLoading = true;
+    hasError = false;
+    updateTimeSlotsUI();
+
+    try {
+      timeSlots = await getAvailableSlots(selectedDate, selectedServiceId);
+    } catch (error) {
+      console.error("Error fetching time slots:", error);
+      timeSlots = [];
+      hasError = true;
+    } finally {
+      isLoading = false;
+      updateTimeSlotsUI();
+    }
+  }
+
+  function updateTimeSlotsUI(): void {
+    emptyState.hidden = Boolean(selectedDate);
+    panel.hidden = !selectedDate;
+    if (!selectedDate) return;
+
+    heading.textContent = `Available Times for ${formatDisplayDate(selectedDate)}`;
+    loading.hidden = !isLoading;
+    errorState.hidden = isLoading || !hasError;
+    noSlots.hidden = isLoading || hasError || timeSlots.length > 0;
+    grid.hidden = isLoading || hasError || timeSlots.length === 0;
+
+    grid.replaceChildren(
+      ...timeSlots.map((slot) => {
+        const button = document.createElement("button");
+        button.textContent = slot.display;
+        button.disabled = !slot.available;
+        button.className = [
+          "w-full text-sm rounded-lg transition-colors py-2 px-3 border border-gray-200",
+          "bg-white hover:bg-primary/10",
+          slot.available ? "cursor-pointer" : "opacity-50 cursor-not-allowed",
+        ].join(" ");
+
+        button.addEventListener("click", () => {
+          grid.querySelectorAll("button").forEach((b) => {
+            b.classList.remove("bg-primary", "text-white");
+            b.classList.add("bg-white", "hover:bg-primary/10");
+          });
+          button.classList.remove("bg-white", "hover:bg-primary/10");
+          button.classList.add("bg-primary", "text-white");
+          dispatchTimeSlotSelected(slot);
+        });
+
+        return button;
+      })
+    );
+  }
+</script>
