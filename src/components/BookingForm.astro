@@ -46,7 +46,7 @@ const buttonClass =
         <div>
           <label class="block text-sm font-medium mb-1" for={field.id}>{field.label}</label>
           <input
-            type={field.type}
+            type={field.type as astroHTML.JSX.HTMLInputTypeAttribute}
             id={field.id}
             name={field.id}
             placeholder={field.placeholder}
@@ -163,7 +163,8 @@ const buttonClass =
       window.location.href = "/confirmation";
     } catch (error) {
       console.error("Error creating booking:", error);
-      alert("There was a problem creating your booking. Please try again.");
+      alert("This project is just a demo, the checkout payment flow is deactivated");
+      // alert("There was a problem creating your booking. Please try again.");
       submitButton.disabled = false;
       submitButton.textContent = "Confirm Booking";
     }
