@@ -157,8 +157,7 @@ export async function createBooking(
       },
     });
 
-    // Create a cart, calculate it to get the price-verification token, then
-    // place the order.
+    // Create a cart, calculate it to get the price-verification token, then place the order.
     const createdCart = await cartV2.createCart({
       cart: {
         source: { channelType: "WEB" },

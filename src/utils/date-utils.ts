@@ -12,7 +12,6 @@ export function formatDisplayDate(date: Date): string {
     day: "numeric",
   }).format(date);
 }
-
 /**
  * Get the days of the week
  */

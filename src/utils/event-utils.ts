@@ -2,7 +2,6 @@
  * Custom events used to coordinate the scheduling components
  */
 import type { TimeSlot } from "./booking-service";
-
 /**
  * The service the visitor picked, identified by its real Wix service id
  */

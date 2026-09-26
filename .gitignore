@@ -26,3 +26,12 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# wrangler state
+.wrangler/
+
+# vscode settings
+.vscode/
+
+# gemini settings
+.gemini/

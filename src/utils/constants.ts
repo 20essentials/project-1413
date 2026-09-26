@@ -1,6 +1,6 @@
 // Business name shown across the app. To fetch it dynamically instead, see the
 // Site Properties API (@wix/business-tools) — out of scope for this template.
-export const BUSINESS_NAME = "Business Name";
+export const BUSINESS_NAME = "Booking App";
 
 // Time display format, rendered in the visitor's local timezone
 export const TIME_FORMAT = {

@@ -81,7 +81,6 @@ function formatMeta(service: ServiceSummary): string {
     });
   });
 
-  // Announce the default selection (the first service) once the page is ready
   document.addEventListener('DOMContentLoaded', () => {
     if (buttons[0]) {
       dispatchServiceSelected(serviceFromButton(buttons[0]));
