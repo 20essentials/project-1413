@@ -1,4 +1,4 @@
-[![Foto Preview](preview/project-1413.avif)](https://the-booking-d960960gm-0b09.wix-site-host.com/)
+[![Foto Preview](preview/project-1413.avif)](https://the-booking-d960960gm-0b09.wix-site-host.com/schedule)
 
 <div align="center" style="display: flex; justify-content: center;">
   <a  href="https://github.com/20essentials/project-1412" target="_blank">&#8592;</a>
