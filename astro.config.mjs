@@ -4,7 +4,6 @@ import wix from "@wix/astro";
 import wixPages from "@wix/astro-pages";
 import wixHostingAdapter from "@wix/astro-wix-hosting-adapter";
 import tailwindcss from "@tailwindcss/vite";
-
 import react from "@astrojs/react";
 
 // https://astro.build/config

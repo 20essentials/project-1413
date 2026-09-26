@@ -1,4 +1,4 @@
-[![Foto Preview](preview/project-1413.avif)](https://20essentials.github.io/project-1413)
+[![Foto Preview](preview/project-1413.avif)](https://the-booking-d960960gm-0b09.wix-site-host.com/)
 
 <div align="center" style="display: flex; justify-content: center;">
   <a  href="https://github.com/20essentials/project-1412" target="_blank">&#8592;</a>
@@ -6,7 +6,7 @@
   <a  href="https://github.com/20essentials/project-1414" target="_blank">&#8594;</a>
 </div>
 
-# Wix Astro Scheduler 
+## Wix Astro Scheduler 
 
 An appointment scheduling project built with Astro and [Wix Bookings](https://dev.wix.com/docs/sdk/backend-modules/bookings/introduction). It demonstrates the full booking flow against a Wix site:
 
